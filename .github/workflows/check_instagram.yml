@@ -1,0 +1,37 @@
+name: IG Monitor (hourly) - Discord
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # every hour at minute 0 (UTC)
+  workflow_dispatch: {}  # allows manual run
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install playwright requests
+          python -m playwright install --with-deps
+
+      - name: Run checker
+        env:
+          TARGET_USERNAME: ${{ secrets.TARGET_USERNAME }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          python ig_check.py
+
+      - name: Upload snapshots (optional)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ig-snapshots
+          path: snapshots/*.png
